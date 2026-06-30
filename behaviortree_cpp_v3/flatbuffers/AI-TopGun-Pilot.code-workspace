@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "AI-TopGun-Pilot",
+			"path": "../../../../../AI-TopGun-Pilot"
+		},
+		{
+			"name": "behaviortree_cpp_v3",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
