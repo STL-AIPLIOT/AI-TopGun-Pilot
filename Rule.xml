@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<root main_tree_to_execute="MainTree">
+
+    <BehaviorTree ID="MainTree">
+
+        <Sequence name="MainCombatSequence">
+
+            <!-- ========================================= -->
+            <!-- 1. 전투 정보 업데이트                     -->
+            <!-- ========================================= -->
+            <Sequence name="UpdateCombatInformation">
+
+                <SelectTarget BB="{BB}"/>
+                <DistanceUpdate BB="{BB}"/>
+                <CheckSight BB="{BB}"/>
+
+                <!-- 반드시 먼저 방향 벡터를 갱신 -->
+                <DirectionVectorUpdate BB="{BB}"/>
+
+                <!-- 위에서 계산한 방향 벡터에 의존 -->
+                <AngleOffUpdate BB="{BB}"/>
+                <AspectAngleUpdate BB="{BB}"/>
+
+                <EnergyCompare BB="{BB}"/>
+                <PredictManeuver BB="{BB}"/>
+
+            </Sequence>
+
+            <!-- ========================================= -->
+            <!-- 2. BFM 모드 선택 및 행동 실행             -->
+            <!-- 좁고 긴급한 조건부터 넓은 조건 순서       -->
+            <!-- ========================================= -->
+            <Fallback name="SelectAndExecuteBFM">
+
+                <!-- SCISSORS: 에너지 열세 및 근접 상황 -->
+                <Sequence name="SCISSORS_Branch">
+                    <SetBFMMode_SCISSORS BB="{BB}"/>
+
+                    <Fallback name="SCISSORS_Action">
+                        <Task_ScissorBreakTurn BB="{BB}"/>
+                        <Task_ScissorRollBack BB="{BB}"/>
+                        <Task_EvasiveRollOrScissors BB="{BB}"/>
+                    </Fallback>
+                </Sequence>
+
+                <!-- HABFM: 헤드온 상황 -->
+                <Sequence name="HABFM_Branch">
+                    <SetBFMMode_HABFM BB="{BB}"/>
+
+                    <Fallback name="HABFM_Action">
+                        <Task_OneCircleAttack BB="{BB}"/>
+                        <Task_TwoCircleAttack BB="{BB}"/>
+                    </Fallback>
+                </Sequence>
+
+                <!-- OBFM: 공격 우위 상황 -->
+                <Sequence name="OBFM_Branch">
+                    <SetBFMMode_OBFM BB="{BB}"/>
+
+                    <Fallback name="OBFM_Action">
+                        <Task_AntiOvershoot BB="{BB}"/>
+                        <Task_LeadPursuit BB="{BB}"/>
+                        <Task_FollowTarget BB="{BB}"/>
+                    </Fallback>
+                </Sequence>
+
+                <!-- DBFM: 일반 방어 상황, 가장 넓은 조건 -->
+                <Sequence name="DBFM_Branch">
+                    <SetBFMMode_DBFM BB="{BB}"/>
+
+                    <Fallback name="DBFM_Action">
+
+                        <DECO_CounterAttackCheck BB="{BB}">
+                            <Task_RollReverseAttack BB="{BB}"/>
+                        </DECO_CounterAttackCheck>
+
+                        <Task_EvasiveRollOrScissors BB="{BB}"/>
+                        <Task_CounterTurn BB="{BB}"/>
+
+                    </Fallback>
+                </Sequence>
+
+                <!-- AlwaysSuccess 대신 실제 기본 행동 -->
+                <Fallback name="NormalTracking">
+                    <Task_FollowTarget BB="{BB}"/>
+                    <Task_Pure BB="{BB}"/>
+                </Fallback>
+
+            </Fallback>
+
+        </Sequence>
+
+    </BehaviorTree>
+
+</root>
