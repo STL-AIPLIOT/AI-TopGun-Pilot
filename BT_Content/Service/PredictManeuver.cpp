@@ -3,12 +3,17 @@
 
 namespace Action
 {
-	PredictManeuver::PredictManeuver(const std::string& name, const NodeConfiguration& config)
+	PredictManeuver::PredictManeuver(
+		const std::string& name,
+		const NodeConfiguration& config
+	)
 		: SyncActionNode(name, config)
 	{
 	}
 
-	PredictManeuver::~PredictManeuver() {}
+	PredictManeuver::~PredictManeuver()
+	{
+	}
 
 	PortsList PredictManeuver::providedPorts()
 	{
@@ -19,37 +24,91 @@ namespace Action
 
 	NodeStatus PredictManeuver::tick()
 	{
-		Optional<CPPBlackBoard*> BB = getInput<CPPBlackBoard*>("BB");
+		// Behavior Tree로부터 블랙보드 포인터를 가져온다.
+		Optional<CPPBlackBoard*> BB =
+			getInput<CPPBlackBoard*>("BB");
+
+		// 입력 포트가 없거나 포인터가 nullptr이면 실행할 수 없다.
 		if (!BB || !(*BB))
+		{
 			return NodeStatus::FAILURE;
+		}
 
-		const Vector3& currentPos = (*BB)->TargetLocaion_Cartesian;
-		const EulerAngle& currentRot = (*BB)->TargetRotation_EDegree;
-		float currentYaw = currentRot.Yaw;
+		const Vector3& currentPos =
+			(*BB)->TargetLocaion_Cartesian;
 
+		const EulerAngle& currentRot =
+			(*BB)->TargetRotation_EDegree;
+
+		const float currentYaw = currentRot.Yaw;
+
+		// 위치 기록이 historySize를 넘지 않도록
+		// 가장 오래된 데이터를 제거한다.
 		if (prevPositions.size() >= historySize)
+		{
 			prevPositions.pop_front();
-		if (prevHeadings.size() >= historySize)
-			prevHeadings.pop_front();
+		}
 
+		// 방향 기록이 historySize를 넘지 않도록
+		// 가장 오래된 데이터를 제거한다.
+		if (prevHeadings.size() >= historySize)
+		{
+			prevHeadings.pop_front();
+		}
+
+		// 현재 프레임의 위치와 방향을 기록한다.
 		prevPositions.push_back(currentPos);
 		prevHeadings.push_back(currentYaw);
 
+		// 충분한 방향 데이터가 쌓이지 않았다면
+		// 아직 회전 방향을 판단하지 않는다.
 		if (prevHeadings.size() < historySize)
+		{
 			return NodeStatus::SUCCESS;
+		}
 
 		float sumDelta = 0.0f;
+
+		// 연속된 Yaw 값 사이의 각도 변화를 계산한다.
 		for (size_t i = 1; i < prevHeadings.size(); ++i)
-			sumDelta += prevHeadings[i] - prevHeadings[i - 1];
+		{
+			const float previousYaw =
+				prevHeadings[i - 1];
 
-		float avgDelta = sumDelta / (historySize - 1);
+			const float currentRecordedYaw =
+				prevHeadings[i];
 
-		if (avgDelta > 1.5f)
+			const float rawDelta =
+				currentRecordedYaw - previousYaw;
+
+			// ±180도 경계를 통과할 때 발생하는
+			// -358도, +358도 등의 잘못된 차이를 보정한다.
+			const float normalizedDelta =
+				normalizeAngleDelta(rawDelta);
+
+			sumDelta += normalizedDelta;
+		}
+
+		// 각도 차이의 개수는 방향 기록 개수보다 1개 적다.
+		const float deltaCount =
+			static_cast<float>(prevHeadings.size() - 1);
+
+		const float avgDelta =
+			sumDelta / deltaCount;
+
+		// 기존 코드의 회전 방향 기준을 그대로 유지한다.
+		if (avgDelta > TURN_THRESHOLD_DEG)
+		{
 			(*BB)->PredictedTurnDirection = "LEFT";
-		else if (avgDelta < -1.5f)
+		}
+		else if (avgDelta < -TURN_THRESHOLD_DEG)
+		{
 			(*BB)->PredictedTurnDirection = "RIGHT";
+		}
 		else
+		{
 			(*BB)->PredictedTurnDirection = "STRAIGHT";
+		}
 
 		return NodeStatus::SUCCESS;
 	}
