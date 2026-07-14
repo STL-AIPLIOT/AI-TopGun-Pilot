@@ -117,7 +117,7 @@ class SwitchNode : public ControlNode
             char case_str[20];
 
             // i가 0이면 case_1, i가 1이면 case_2 형식으로 포트 이름을 만든다.
-            sprintf_s(case_str, "case_%d", i+1);
+            sprintf(case_str, "case_%d", i+1);
 
             // 생성한 case 포트를 입력 포트로 등록한다.
             ports.insert( BT::InputPort<std::string>(case_str) );
@@ -206,7 +206,7 @@ NodeStatus SwitchNode<NUM_CASES>::tick()
             {
                 // case_10 이상부터는 직접 포트 이름을 만들어 사용한다.
                 char case_str[20];
-                sprintf_s(case_str, "case_%d", index+1);
+                sprintf(case_str, "case_%d", index+1);
                 found = (bool)getInput(case_str, value);
             }
 
