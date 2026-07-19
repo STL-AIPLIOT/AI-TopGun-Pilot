@@ -82,6 +82,7 @@
                 </Sequence>
 
                 <!-- AlwaysSuccess 대신 실제 기본 행동 -->
+                <!-- Normal tracking: FollowTarget is the primary tracking behavior, Task_Pure is the final fallback. -->
                 <Fallback name="NormalTracking">
                     <Task_FollowTarget BB="{BB}"/>
                     <Task_Pure BB="{BB}"/>
